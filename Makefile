@@ -15,7 +15,7 @@ ifeq ($(UNAME), Linux)
 	GL_LIBS = -lGL -lGLU -lIL -lglfw
 endif
 ifeq ($(UNAME), Darwin)
-	GL_LIBS = -framework OpenGL -lIL -lglfw
+	GL_LIBS = -framework OpenGL -lIL -lglfw -headerpad_max_install_names
 endif
 
 CC = gcc
@@ -35,6 +35,19 @@ GAME_SRC =
 GAME_HEADERS =
 EDITOR_SRC =
 EDITOR_HEADERS =
+
+OSXAPP_DIR = $(OUT_DIR)/SunkCoast.app
+OSX_DATA_OUT = $(OSXAPP_DIR)/Contents/MacOS/data
+
+OSXBUNDLEITEMS = $(OSXAPP_DIR)/Contents/MacOS/launch.sh
+OSXBUNDLEITEMS += $(OSXAPP_DIR)/Contents/Info.plist
+OSXBUNDLEITEMS += $(OSXAPP_DIR)/Contents/MacOS/sunkcoast
+OSXBUNDLEITEMS += $(OSXAPP_DIR)/Contents/MacOS/libIL.1.dylib
+OSXBUNDLEITEMS += $(OSXAPP_DIR)/Contents/MacOS/libglfw.dylib
+OSXBUNDLEITEMS += $(OSX_DATA_OUT)/font.png
+
+
+osxbundle: $(OUT_DIR)/readme.txt $(OSXBUNDLEITEMS)
 
 all: $(EXE) $(DATA) $(OUT_DIR)/readme.txt
 
@@ -73,3 +86,31 @@ $(DATA_OUT)/%: data/%
 $(OUT_DIR)/readme.txt: README
 	mkdir -p $(dir $@)
 	cp $< $@
+
+$(OSXAPP_DIR)/Contents/Info.plist: package/Info.plist
+	mkdir -p $(dir $@)
+	cp $< $@
+
+$(OSXAPP_DIR)/Contents/MacOS/launch.sh: package/launch.sh
+	mkdir -p $(dir $@)
+	cp $< $@
+	chmod 711 $@
+
+$(OSXAPP_DIR)/Contents/MacOS/sunkcoast: $(EXE)
+	mkdir -p $(dir $@)
+	cp $< $@
+	install_name_tool -change /usr/local/opt/devil/lib/libIL.1.dylib @executable_path/libIL.1.dylib $@
+	install_name_tool -change /usr/local/opt/glfw/lib/libglfw.dylib @executable_path/libglfw.dylib $@
+
+$(OSXAPP_DIR)/Contents/MacOS/libIL.1.dylib: /usr/local/opt/devil/lib/libIL.1.dylib
+	mkdir -p $(dir $@)
+	cp $< $@
+
+$(OSXAPP_DIR)/Contents/MacOS/libglfw.dylib: /usr/local/opt/glfw/lib/libglfw.dylib
+	mkdir -p $(dir $@)
+	cp $< $@
+
+$(OSX_DATA_OUT)/%: data/%
+	mkdir -p $(dir $@)
+	cp $< $@
+
